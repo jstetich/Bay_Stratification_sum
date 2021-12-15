@@ -12,14 +12,11 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [Units](#units)
 -   [Make Data Subsets](#make-data-subsets)
 -   [Royal River Transects](#royal-river-transects)
--   [Presumpscot Transect Sites (Not
-    Run)](#presumpscot-transect-sites-not-run)
--   [Fore River Transect Sites (Not
-    Run)](#fore-river-transect-sites-not-run)
--   [Review of Royal River Data](#review-of-royal-river-data)
+-   [Royal River Transect](#royal-river-transect)
+    -   [Approximate upstream to downstream
+        distances](#approximate-upstream-to-downstream-distances)
     -   [How often was each site
         sampled?](#how-often-was-each-site-sampled)
--   [Royal Estuary Series](#royal-estuary-series)
     -   [Maximum Depths, 2017](#maximum-depths-2017)
     -   [May](#may)
         -   [Temperature](#temperature)
@@ -40,16 +37,13 @@ Sonde “downcast” data generates a huge volume of data, which can be
 difficult to analyze or summarize. Consequently, the data is often
 presented largely in graphical form. Formal statistical analyses are of
 less interest, as we expect variation by depth, time, and location.
-Unexplained variation is also fairly common.
 
 Here we focus on producing graphical summaries of the DEP sonde downcast
-data from a transect from the head of tida at the Presumpscot Estuary to
-Fort Gorges.
-
-1.  Variation by time of year for each site and year, and
+data from a transect from near the head of tide to the mouth of the
+Royal River estuary.
 
 We make use of a small graphics package we produced, `tdggraph`, that
-encapsulates logic needed to generate the necessary graphics
+encapsulates logic needed to generate the necessary graphics.
 
 \#Load libraries
 
@@ -58,10 +52,11 @@ encapsulates logic needed to generate the necessary graphics
 library(tidyverse)
 #> Warning: package 'tidyverse' was built under R version 4.0.5
 #> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
-#> v ggplot2 3.3.3     v purrr   0.3.4
-#> v tibble  3.1.2     v dplyr   1.0.6
-#> v tidyr   1.1.3     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.1
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
 #> Warning: package 'tidyr' was built under R version 4.0.5
 #> Warning: package 'dplyr' was built under R version 4.0.5
 #> Warning: package 'forcats' was built under R version 4.0.5
@@ -79,7 +74,7 @@ library(tdggraph)    # CBEP package for time-depth "profile" graphics
 # Folder References
 
 ``` r
-sibfldnm <- 'Derived_Data'
+sibfldnm <- 'Data'
 parent <- dirname(getwd())
 sibling <- paste(parent,sibfldnm, sep = '/')
 
@@ -92,26 +87,17 @@ dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
 sonde_data <- read_csv(file.path(sibling, 'dep_sonde_data.csv')) %>%
   mutate(yearf = factor(year)) %>%
   mutate(month = factor(month,levels = month.abb))
-#> 
+#> Rows: 2679 Columns: 16
 #> -- Column specification --------------------------------------------------------
-#> cols(
-#>   site_name = col_character(),
-#>   site = col_character(),
-#>   dt = col_date(format = ""),
-#>   month = col_character(),
-#>   year = col_double(),
-#>   time = col_time(format = ""),
-#>   hour = col_double(),
-#>   depth = col_double(),
-#>   temp = col_double(),
-#>   salinity = col_double(),
-#>   ph = col_double(),
-#>   pctsat = col_double(),
-#>   do = col_double(),
-#>   chl_a_sonde = col_double(),
-#>   turbidity = col_double(),
-#>   turbidity_cens = col_logical()
-#> )
+#> Delimiter: ","
+#> chr   (3): site_name, site, month
+#> dbl  (10): year, hour, depth, temp, salinity, ph, pctsat, do, chl_a_sonde, t...
+#> lgl   (1): turbidity_cens
+#> date  (1): dt
+#> time  (1): time
+#> 
+#> i Use `spec()` to retrieve the full column specification for this data.
+#> i Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ```
 
 # Summary of Metadata
@@ -124,21 +110,20 @@ the data to avoid confusion.
 ## Censoring Flags
 
 While preparing our working data, we separated raw observations from
-text annotations, including data quality flags. IN the sonde-related
+text annotations, including data quality flags. In the sonde-related
 data, we only had to contend with (1) left censoring of turbidity data ,
 and (2) data quality flags on all chlorophyll data.
 
 Since all sonde-related chlorophyll data was flagged as of questionable
 accuracy (with “J” flags), it does us no good to track that information
-during further analysis. We retain all data, but recognize that it’s
-accuracy is suspect, especially in comparison to laboratory results. We
-believe the “J” flags reflect the fact that these are “raw” estimates of
-chlorophyll based only on observed florescence, never recalibarated
-based on laboratory samples.
+during analysis. We confirmed with DEP staff that the “J” flags reflect
+the fact that these are sonde estimates of chlorophyll, based on
+observed florescence, which were never recalibarated based on laboratory
+samples.
 
-We also had a few “U&lt;” flags in the Turbidity data. We separated out
-a `TRUE` / `FALSE` flag to indicated censored values, with the name
-’turbidity\_cens\`.
+We also had a few “U&lt;” (undetected) flags in the Turbidity data. We
+separated out a `TRUE` / `FALSE` flag to indicated censored values, with
+the name ’turbidity\_cens\`.
 
 ## Units
 
@@ -150,15 +135,15 @@ here.
 |---------------|-------------------------------------------------|-----------------------------|
 | site\_name    | DEP “Site ID”                                   |                             |
 | site          | DEP “Sample Point ID” without depth designation |                             |
-| dt            | Date of sample collection                       | yyyy-mm-dd format           |
+| dt            | Date of sample collection                       | dd/mm/yyyy format           |
 | month         | Month, derived from date                        | Three letter codes          |
 | year          | Year, derived from date                         |                             |
 | time          | time of sample                                  | 24 hour clock, hh:mm format |
 | hour          | hour, derived from time                         |                             |
 | depth         | Sample Depth                                    | Meters                      |
 | temp          | Water Temperature                               | DEG C                       |
-| salinity      | Salinity                                        | PPTH                        |
-| ph            | pH                                              |                             |
+| salinity      | Salinity                                        | PSU (roughly, PPTH )        |
+| ph            | pH                                              | NBS pH scale                |
 | pctsat        | Dissolved Oxygen Saturation                     | %                           |
 | do            | Dissolved Oxygen                                | MG/L                        |
 | turbidity     | Turbidity                                       | NTU                         |
@@ -167,6 +152,13 @@ here.
 # Make Data Subsets
 
 # Royal River Transects
+
+We filter to sites in the Royal River and Cousins River only. We order
+sites in upstream to downstream sequence along each river. Royal River
+sites RR-19 and RR-20 are close together, and quite near CR-44. Any of
+these three sites could be considered the “most marine” station in these
+series, but we use RR-20 as the common “most marine” station, as it
+occurs at the confluence of the two rivers.
 
 ``` r
 rr_transect_sites  <- sonde_data %>%
@@ -183,40 +175,18 @@ rr_data <- sonde_data %>%
 #rm(cr_transect, rr_transect)
 ```
 
-# Presumpscot Transect Sites (Not Run)
+# Royal River Transect
+
+## Approximate upstream to downstream distances
+
+We estimated distances between sampling in GIS locations so the graphics
+reflect relative locatiosn of sampling points up and down the estuary.
 
 ``` r
-pr_transect_sites <- sonde_data %>%
-  filter(grepl('PR', site) | grepl('P6FG', site)) %>%
-  select(site, site_name) %>%
-  unique() %>%
-  pull(site)
-pr_transect <- pr_transect_sites[c(5,3,4,2,1)]
-pr_transect
-
-rr_data <- sonde_data %>%
-  filter(site %in% pr_transect)
-rm(pr_transect_sites, pr_transect)
+rr_dist_lookup <- tibble( site = c('RR-01', 'RR-06', 
+                                   'RR-13', 'RR-19', 'RR-20'),
+                          dist = c(0, 885, 2043, 3089, 3248))
 ```
-
-# Fore River Transect Sites (Not Run)
-
-``` r
-fr_transect_sites <- sonde_data %>%
-  filter(grepl('FR', site) | grepl('PH', site) | 
-           grepl('LC', site) | grepl('P6FG', site)) %>%
-  select(site, site_name) %>%
-  unique() %>%
-  pull(site)
-fr_transect_sites <- fr_transect_sites[c(8,1:7)]
-fr_transect_sites
-
-fr_data <- sonde_data %>%
-  filter(site %in% fr_transect_sites)
-rm(fr_transect_sites)
-```
-
-# Review of Royal River Data
 
 ## How often was each site sampled?
 
@@ -228,30 +198,34 @@ tmp <- rr_data %>%
   group_by(site, year) %>%
   summarize(was_sampled = sum(! is.na(depth)) > 1,
             .groups = 'drop')
-xt <- xtabs(~ year + site, addNA = TRUE, data = tmp)
-```
-
-``` r
-xt
+xtabs(~ year + site, addNA = TRUE, data = tmp)
 #>       site
 #> year   RR-01 RR-06 RR-13 RR-19 RR-20
 #>   2016     0     1     1     1     0
 #>   2017     1     1     1     1     1
 ```
 
-So, DEP sampled some sites only in 2017.
+So, DEP sampled some sites, including the most upstream and the most
+downstream only in 2017. Since our purpose here is largely to
+demonstrate ideas for displaying these data, we focus principally on
+2017.
 
-# Royal Estuary Series
+We filter the Royal Rive data to 2017, and order sites in upstream to
+downstream order. We also add in the `dist` values that roughly indicate
+distance from the most upstream sampling location. Note that RR-19 and
+RR-20 are quite close. RR20 is shallower, as it sits on the edge of the
+bar at the confluence of the Royal and Cousins rivers.
 
 ``` r
 rr_trans <- rr_data %>%
   filter(site %in% rr_transect) %>%
+  left_join(rr_dist_lookup, by = 'site') %>%
   rename(dates = dt) %>%
   filter(year == 2017) %>%
   mutate(site = factor(site, 
                        levels = c('RR-01', 'RR-06', 'RR-13',
                                   'RR-19', 'RR-20')),
-         sitenum = as.numeric(site))   # Needed for plotting
+         sitenum = as.numeric(site))   # Needed for aleternate plotting
 ```
 
 ## Maximum Depths, 2017
@@ -259,24 +233,20 @@ rr_trans <- rr_data %>%
 ``` r
 rr_data %>%
   filter(year == 2017) %>%
-  group_by(site, month) %>%
+  group_by(site) %>%
   summarize(maxdepth = max(depth, na.rm = TRUE))
-#> `summarise()` has grouped output by 'site'. You can override using the `.groups` argument.
-#> # A tibble: 33 x 3
-#> # Groups:   site [9]
-#>    site  month maxdepth
-#>    <chr> <fct>    <dbl>
-#>  1 CR-31 Jun      5.02 
-#>  2 CR-31 Jul      1.9  
-#>  3 CR-31 Aug      4.04 
-#>  4 CR-31 Sep      4.99 
-#>  5 CR-44 Jun      1.50 
-#>  6 CR-44 Jul      1.5  
-#>  7 CR-44 Aug      1.84 
-#>  8 CR00  Jun      0.799
-#>  9 CR00  Jul      0.2  
-#> 10 CR00  Aug      0.523
-#> # ... with 23 more rows
+#> # A tibble: 9 x 2
+#>   site    maxdepth
+#>   <chr>      <dbl>
+#> 1 CR-31       5.02
+#> 2 CR-44       1.84
+#> 3 CR00        1.49
+#> 4 CRTRIB0     2.49
+#> 5 RR-01       5.00
+#> 6 RR-06       5.5 
+#> 7 RR-13       5.51
+#> 8 RR-19       5.07
+#> 9 RR-20       2.5
 ```
 
 ## May
@@ -291,47 +261,50 @@ tmp1 <- rr_trans %>%
 ptlines(tmp1, temp, depth, site)
 ```
 
-<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
 
 ### Temperature
 
 ``` r
-ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = temp, 
-         .res_x = 0.01, .res_y = .1,
+ptsmooth(tmp1, .x  = dist,  .y  = depth,  .val = temp, 
+         .res_x = 50, .res_y = .1,
          y_grow_grid = FALSE, y_with_zero = FALSE) +
   scale_fill_distiller(palette = 7, direction = 2, 
                       limits = c(7, 22),
                       na.value = 'gray95'
                                   ) +
   theme_cbep(base_size = 12) +
-  theme(legend.position = 'bottom') +
+  theme(legend.position = 'bottom',
+        axis.text.x = element_text(angle = 90)) +
   guides(fill = guide_colorbar(title = expression(Temperature ~ ( degree * C)), 
                                title.position = 'top',
                                barheight = unit(0.2, 'cm'))) +
 
-  geom_point(mapping = aes(sitenum, depth), data= tmp1,
-             shape = 21, fill = NA, color = 'gray70', size = 3) +
-  scale_x_continuous(breaks = 1:5, 
-                     labels = levels(tmp1$site)) +
-  #ylim(7.5,0) +
+  geom_point(mapping = aes(dist, depth), data= tmp1,
+             shape = 21, fill = NA, color = 'gray70', size = 2) +
+  scale_x_continuous(breaks = rr_dist_lookup$dist, 
+                     labels = rr_dist_lookup$site,
+                     limits = c(0, 3250)) +
+  ylim(6,0) +
   
   xlab('') +
   ylab('Depth (m)') +
   ggtitle('May')
+#> Scale for 'y' is already present. Adding another scale for 'y', which will
+#> replace the existing scale.
 ```
 
-<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/royal_may_temp.pdf', device = cairo_pdf, width = 3, height = 3)
-#ggsave('figures/royal_may_temp.svg', width = 3, height = 3)
 ```
 
 ### Salinity
 
 ``` r
-ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = salinity, 
-         .res_x = 0.01, .res_y = .1,
+ptsmooth(tmp1, .x  = dist,  .y  = depth,  .val = salinity, 
+          .res_x = 50, .res_y = .1,
          y_grow_grid = FALSE, y_with_zero = FALSE) +
   scale_fill_distiller(palette = 3, direction = 2, 
                       limits = c(0, 32),
@@ -343,11 +316,12 @@ ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = salinity,
                                title.position = 'top',
                                barheight = unit(0.2, 'cm'))) +
 
-  geom_point(mapping = aes(sitenum, depth), data= tmp1,
+  geom_point(mapping = aes(dist, depth), data= tmp1,
              shape = 21, fill = NA, color = 'gray70', size = 3) +
-  scale_x_continuous(breaks = 1:5, 
-                     labels = levels(tmp1$site)) +
-  ylim(7.5,0) +
+   scale_x_continuous(breaks = rr_dist_lookup$dist, 
+                     labels = rr_dist_lookup$site,
+                     limits = c(0, 3250)) +
+  ylim(6,0) +
 
   xlab('') +
   ylab('Depth (m)') +
@@ -356,7 +330,7 @@ ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = salinity,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/royal_may_salinity.pdf', device = cairo_pdf, width = 3, height = 3)
@@ -365,8 +339,8 @@ ggsave('figures/royal_may_salinity.pdf', device = cairo_pdf, width = 3, height =
 ### Dissolved Oxygen
 
 ``` r
-ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = do, 
-         .res_x = 0.01, .res_y = .1,
+ptsmooth(tmp1, .x  = dist,  .y  = depth,  .val = do, 
+          .res_x = 50, .res_y = .1,
          y_grow_grid = FALSE, y_with_zero = FALSE) +
   scale_fill_distiller(palette = 4, direction = 2, 
                         limits = c(6, 11),
@@ -378,11 +352,12 @@ ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = do,
                                title.position = 'top',
                                barheight = unit(0.2, 'cm'))) +
   
-  geom_point(mapping = aes(sitenum, depth), data= tmp1,
+  geom_point(mapping = aes(dist, depth), data= tmp1,
              shape = 21, fill = NA, color = 'gray70', size = 3) +
-  scale_x_continuous(breaks = 1:5, 
-                     labels = levels(tmp1$site)) +
-  ylim(7.5,0) +
+  scale_x_continuous(breaks = rr_dist_lookup$dist, 
+                     labels = rr_dist_lookup$site,
+                     limits = c(0, 3250)) +
+  ylim(6,0) +
 
   xlab('') +
   ylab('Depth (m)') +
@@ -391,7 +366,7 @@ ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = do,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/royal_may_oxygen.pdf', device = cairo_pdf, width = 3, height = 3)
@@ -408,8 +383,8 @@ tmp2 <- rr_trans %>%
 ### Temperature
 
 ``` r
-ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = temp, 
-         .res_x = 0.01, .res_y = .1,
+ptsmooth(tmp2, .x  = dist,  .y  = depth,  .val = temp, 
+          .res_x = 50, .res_y = .1,
          y_grow_grid = FALSE, y_with_zero = FALSE) +
   
   scale_fill_distiller(palette = 7, direction = 2, 
@@ -422,11 +397,12 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = temp,
                                title.position = 'top',
                                barheight = unit(0.2, 'cm'))) +
   
-  geom_point(mapping = aes(sitenum, depth), data= tmp2,
+  geom_point(mapping = aes(dist, depth), data= tmp2,
              shape = 21, fill = NA, color = 'gray70', size = 3) +
-  scale_x_continuous(breaks = 1:5, 
-                     labels = levels(tmp2$site)) +
-  ylim(7.5,0) +
+  scale_x_continuous(breaks = rr_dist_lookup$dist, 
+                     labels = rr_dist_lookup$site,
+                     limits = c(0, 3250)) +
+  ylim(6,0) +
 
   xlab('') +
   ylab('Depth (m)') +
@@ -435,7 +411,7 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = temp,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/royal_sept_temp.pdf', device = cairo_pdf, width = 3, height = 3)
@@ -444,8 +420,8 @@ ggsave('figures/royal_sept_temp.pdf', device = cairo_pdf, width = 3, height = 3)
 ### Salinity
 
 ``` r
-ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = salinity, 
-         .res_x = 0.01, .res_y = .1,
+ptsmooth(tmp2, .x  = dist,  .y  = depth,  .val = salinity, 
+          .res_x = 50, .res_y = .1,
          y_grow_grid = FALSE, y_with_zero = FALSE) +
   scale_fill_distiller(palette = 3, direction = 2, 
                       limits = c(0, 32),
@@ -457,11 +433,12 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = salinity,
                                title.position = 'top',
                                barheight = unit(0.2, 'cm'))) +
 
-  geom_point(mapping = aes(sitenum, depth), data= tmp2,
+  geom_point(mapping = aes(dist, depth), data= tmp2,
              shape = 21, fill = NA, color = 'gray70', size = 3) +
-  scale_x_continuous(breaks = 1:5, 
-                     labels = levels(tmp2$site)) +
-  ylim(7.5,0) +
+  scale_x_continuous(breaks = rr_dist_lookup$dist, 
+                     labels = rr_dist_lookup$site,
+                     limits = c(0, 3250)) +
+  ylim(6,0) +
 
   xlab('') +
   ylab('Depth (m)') +
@@ -470,7 +447,7 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = salinity,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/royal_sept_salinity.pdf', device = cairo_pdf, width = 3, height = 3)
@@ -479,8 +456,8 @@ ggsave('figures/royal_sept_salinity.pdf', device = cairo_pdf, width = 3, height 
 ### Dissolved Oxygen, September
 
 ``` r
-ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = do, 
-         .res_x = 0.01, .res_y = .1,
+ptsmooth(tmp2, .x  = dist,  .y  = depth,  .val = do, 
+          .res_x = 50, .res_y = .1,
          y_grow_grid = FALSE, y_with_zero = FALSE) +
   scale_fill_distiller(palette = 4, direction = 2, 
                         limits = c(6, 11),
@@ -492,11 +469,12 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = do,
                                title.position = 'top',
                                barheight = unit(0.2, 'cm'))) +
   
-  geom_point(mapping = aes(sitenum, depth), data= tmp2,
+  geom_point(mapping = aes(dist, depth), data= tmp2,
              shape = 21, fill = NA, color = 'gray70', size = 3) +
-  scale_x_continuous(breaks = 1:5, 
-                     labels = levels(tmp2$site)) +
-  ylim(7.5,0) +
+  scale_x_continuous(breaks = rr_dist_lookup$dist, 
+                     labels = rr_dist_lookup$site,
+                     limits = c(0, 3250)) +
+  ylim(6,0) +
 
   xlab('') +
   ylab('Depth (m)') +
@@ -505,7 +483,7 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = do,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Royal_Graphics_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/royal_sept_oxygen.pdf', device = cairo_pdf, width = 3, height = 3)

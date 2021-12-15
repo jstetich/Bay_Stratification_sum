@@ -10,11 +10,7 @@ Curtis C. Bohlen, Casco Bay Estuary Partnership.
     -   [QA/QC Samples](#qaqc-samples)
     -   [Censoring Flags](#censoring-flags)
     -   [Units](#units)
--   [Make Data Subsets](#make-data-subsets)
--   [Royal River Transects (Not Run)](#royal-river-transects-not-run)
 -   [Presumpscot Transect Sites](#presumpscot-transect-sites)
--   [Fore River Transect Sites (Not
-    Run)](#fore-river-transect-sites-not-run)
 -   [Review of Presumpscot Data](#review-of-presumpscot-data)
     -   [How often was each site
         sampled?](#how-often-was-each-site-sampled)
@@ -59,10 +55,11 @@ encapsulates logic needed to generate the necessary graphics
 library(tidyverse)
 #> Warning: package 'tidyverse' was built under R version 4.0.5
 #> -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
-#> v ggplot2 3.3.3     v purrr   0.3.4
-#> v tibble  3.1.2     v dplyr   1.0.6
-#> v tidyr   1.1.3     v stringr 1.4.0
-#> v readr   1.4.0     v forcats 0.5.1
+#> v ggplot2 3.3.5     v purrr   0.3.4
+#> v tibble  3.1.6     v dplyr   1.0.7
+#> v tidyr   1.1.4     v stringr 1.4.0
+#> v readr   2.1.0     v forcats 0.5.1
+#> Warning: package 'ggplot2' was built under R version 4.0.5
 #> Warning: package 'tidyr' was built under R version 4.0.5
 #> Warning: package 'dplyr' was built under R version 4.0.5
 #> Warning: package 'forcats' was built under R version 4.0.5
@@ -80,7 +77,7 @@ library(tdggraph)    # CBEP package for time-depth "profile" graphics
 # Folder References
 
 ``` r
-sibfldnm <- 'Derived_Data'
+sibfldnm <- 'Data'
 parent <- dirname(getwd())
 sibling <- paste(parent,sibfldnm, sep = '/')
 
@@ -92,26 +89,17 @@ dir.create(file.path(getwd(), 'figures'), showWarnings = FALSE)
 ``` r
 sonde_data <- read_csv(file.path(sibling, 'dep_sonde_data.csv')) %>%
   mutate(yearf = factor(year))
-#> 
+#> Rows: 2679 Columns: 16
 #> -- Column specification --------------------------------------------------------
-#> cols(
-#>   site_name = col_character(),
-#>   site = col_character(),
-#>   dt = col_date(format = ""),
-#>   month = col_character(),
-#>   year = col_double(),
-#>   time = col_time(format = ""),
-#>   hour = col_double(),
-#>   depth = col_double(),
-#>   temp = col_double(),
-#>   salinity = col_double(),
-#>   ph = col_double(),
-#>   pctsat = col_double(),
-#>   do = col_double(),
-#>   chl_a_sonde = col_double(),
-#>   turbidity = col_double(),
-#>   turbidity_cens = col_logical()
-#> )
+#> Delimiter: ","
+#> chr   (3): site_name, site, month
+#> dbl  (10): year, hour, depth, temp, salinity, ph, pctsat, do, chl_a_sonde, t...
+#> lgl   (1): turbidity_cens
+#> date  (1): dt
+#> time  (1): time
+#> 
+#> i Use `spec()` to retrieve the full column specification for this data.
+#> i Specify the column types or set `show_col_types = FALSE` to quiet this message.
 ```
 
 # Summary of Metadata
@@ -164,25 +152,6 @@ here.
 | turbidity     | Turbidity                                       | NTU                         |
 | chl\_a\_sonde | Chlorophyll A, measured with a sonde            | UG/L                        |
 
-# Make Data Subsets
-
-# Royal River Transects (Not Run)
-
-``` r
-rr_transect_sites  <- sonde_data %>%
-  filter(grepl('RR', site) |grepl('CR', site)) %>%
-  select(site, site_name) %>%
-  unique() %>%
-  pull(site)
-cr_transect <- rr_transect_sites[c(1,4,2,3,9)]
-rr_transect <- rr_transect_sites[c(5:9)]
-rm(rr_transect_sites)
-
-rr_data <- sonde_data %>%
-  filter(site %in% rr_transect | site %in% cr_transect)
-rm(cr_transect, rr_transect)
-```
-
 # Presumpscot Transect Sites
 
 ``` r
@@ -200,23 +169,6 @@ pr_data <- sonde_data %>%
 rm(pr_transect_sites, pr_transect)
 ```
 
-# Fore River Transect Sites (Not Run)
-
-``` r
-fr_transect_sites <- sonde_data %>%
-  filter(grepl('FR', site) | grepl('PH', site) | 
-           grepl('LC', site) | grepl('P6FG', site)) %>%
-  select(site, site_name) %>%
-  unique() %>%
-  pull(site)
-fr_transect_sites <- fr_transect_sites[c(8,1:7)]
-fr_transect_sites
-
-fr_data <- sonde_data %>%
-  filter(site %in% fr_transect_sites)
-rm(fr_transect_sites)
-```
-
 # Review of Presumpscot Data
 
 ## How often was each site sampled?
@@ -229,12 +181,10 @@ tmp <- pr_data %>%
   summarize(was_sampled = sum(! is.na(depth)) > 1,
             .groups = 'drop')
 xt <- xtabs(~ year + site, data = tmp)
-```
-
-``` r
 rowSums(xt)
 #> 2017 2018 2019 2020 
 #>    4    5    5    4
+rm(xt)
 ```
 
 So, DEP sampled all five sites in 2018 and 2019.
@@ -256,24 +206,16 @@ pr_data <- pr_data %>%
 ``` r
 pr_data %>%
   filter(year == 2018) %>%
-  group_by(site, month) %>%
+  group_by(site) %>%
   summarize(maxdepth = max(depth, na.rm = TRUE))
-#> `summarise()` has grouped output by 'site'. You can override using the `.groups` argument.
-#> # A tibble: 30 x 3
-#> # Groups:   site [5]
-#>    site  month maxdepth
-#>    <fct> <chr>    <dbl>
-#>  1 PRV70 Aug       5.37
-#>  2 PRV70 Jul       6.06
-#>  3 PRV70 Jun       2.97
-#>  4 PRV70 May       5.50
-#>  5 PRV70 Oct       4.96
-#>  6 PRV70 Sep       3.52
-#>  7 PR-17 Aug       4.32
-#>  8 PR-17 Jul       4.58
-#>  9 PR-17 Jun       1.87
-#> 10 PR-17 May       4.51
-#> # ... with 20 more rows
+#> # A tibble: 5 x 2
+#>   site  maxdepth
+#>   <fct>    <dbl>
+#> 1 PRV70     6.06
+#> 2 PR-17     4.58
+#> 3 PR-28     8.64
+#> 4 CBPR      3.32
+#> 5 P6FGG    17.5
 ```
 
 ## May
@@ -315,7 +257,7 @@ ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = temp,
 #> Warning: Removed 7 rows containing missing values (geom_point).
 ```
 
-<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/presumpscot_may_temp.pdf', device = cairo_pdf, 
@@ -357,7 +299,7 @@ ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = salinity,
 #> Warning: Removed 7 rows containing missing values (geom_point).
 ```
 
-<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/presumpscot_may_salinity.pdf', device = cairo_pdf, 
@@ -398,7 +340,7 @@ ptsmooth(tmp1, .x  = sitenum,  .y  = depth,  .val = do,
 #> Warning: Removed 7 rows containing missing values (geom_point).
 ```
 
-<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/presumpscot_may_oxygen.pdf', device = cairo_pdf, 
@@ -446,7 +388,7 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = temp,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/presumpscot_sept_temp.pdf', device = cairo_pdf, 
@@ -482,7 +424,7 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = salinity,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/presumpscot_sept_salinity.pdf', device = cairo_pdf, 
@@ -518,7 +460,7 @@ ptsmooth(tmp2, .x  = sitenum,  .y  = depth,  .val = do,
 #> replace the existing scale.
 ```
 
-<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
+<img src="DEP_Preumpscot_Graphics_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 ``` r
 ggsave('figures/presumpscot_sept_oxygen.pdf', device = cairo_pdf, 
